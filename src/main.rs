@@ -5,7 +5,7 @@ use fltk::{
     group::{Pack, PackType},
     input::Input,
     menu::Choice,
-    prelude::{GroupExt, MenuExt, WidgetBase, WidgetExt, WindowExt},
+    prelude::{GroupExt, InputExt, MenuExt, WidgetBase, WidgetExt, WindowExt},
     window::Window,
 };
 
@@ -91,8 +91,43 @@ fn main() {
 
     let mut but_7 = Button::new(BORDER + 48, keys_y_pos + 50, 120, 50, "Send to device");
 
+    let mut serial_port = Input::new(BORDER + 260, keys_y_pos + 50, 150, 30, "Serial port:");
+
+    #[cfg(target_os = "linux")]
+    {
+        let m9_serial_port = get_macro9_serial();
+
+        if let Ok(port) = m9_serial_port {
+            serial_port.set_value(&port);
+        }
+    }
     wind.end();
     wind.show();
     //alert(0, 0, "ERROR");
     app.run().unwrap();
+}
+
+#[cfg(target_os = "linux")]
+fn get_macro9_serial() -> std::io::Result<String> {
+    const VENDOR_ID: &str = "16c0";
+    const PRODUCT_ID: &str = "27db";
+
+    let error = || std::io::Error::new(std::io::ErrorKind::Other, "Could not find serial port");
+
+    let context = libudev::Context::new()?;
+    let mut enumerator = libudev::Enumerator::new(&context)?;
+    enumerator.match_subsystem("tty")?;
+    enumerator.match_property("ID_VENDOR_ID", VENDOR_ID)?;
+    enumerator.match_property("ID_MODEL_ID", PRODUCT_ID)?;
+    let mut devices = enumerator.scan_devices()?;
+
+    let port = devices
+        .next()
+        .ok_or_else(error)?
+        .devnode()
+        .ok_or_else(error)?
+        .display()
+        .to_string();
+
+    Ok(port)
 }
