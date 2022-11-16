@@ -159,7 +159,6 @@ fn main() {
 
     let mut key_fields = [key1, key2, key3, key4, key5, key6];
 
-    println!("{:?}", alt_ch.value());
     wind.end();
     wind.show();
     //alert(0, 0, "ERROR");
@@ -173,6 +172,7 @@ fn main() {
                     state.current_button = Some(n);
                     // Read config into fields
                     if let Some(ref keypad) = state.keys {
+                        println!("Pressed: {}", n);
                         let key = match &keypad.keys[n - 1] {
                             Modified::Yes(k) => k,
                             Modified::No(k) => k,
@@ -213,7 +213,10 @@ fn main() {
                         let config = get_config(&serial_port.value());
                         match config {
                             Ok(c) => state.keys = Some(c),
-                            Err(e) => println!("{:?}", e),
+                            Err(e) => {
+                                println!("{:?}", e);
+                                alert(0, 0, "Could not GET config");
+                            }
                         }
                     }
                 }
@@ -223,8 +226,15 @@ fn main() {
                         if let Some(ref k) = state.keys {
                             // Serialize and send packet
                             match set_config(&serial_port.value(), k) {
-                                Ok(_) => println!("Successfully set config"),
-                                Err(e) => println!("{:?}", e),
+                                Ok(_) => {
+                                    println!("Successfully set config");
+                                    alert(0, 0, "Successfully set config");
+                                    state.modified = false;
+                                }
+                                Err(e) => {
+                                    println!("{:?}", e);
+                                    alert(0, 0, "Could not SET config");
+                                }
                             }
                         }
                     }
@@ -279,7 +289,7 @@ fn main() {
 
                             arr
                         };
-
+                        println!("Parsed the keys");
                         // Change key Modified state
                         state.modified = true;
 
@@ -294,8 +304,7 @@ fn main() {
 
                             keypad.keys[but - 1] = Modified::Yes(key);
 
-                            // Change color
-                            buttons[but].set_color(Color::DarkGreen);
+                            // TODO: change color
                         }
                     }
                 }

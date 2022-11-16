@@ -43,14 +43,14 @@ fn calculate_crc(data: &[u8]) -> u8 {
 
 pub fn get_config(port: &str) -> io::Result<keys::KeypadConfig> {
     let mut port = serialport::new(port, 9600)
-        .timeout(Duration::from_millis(25))
+        .timeout(Duration::from_millis(100))
         .open()?;
 
     port.write_all(&GET_REQ)?;
 
     let mut buf = [0u8; CONFIG_PACKET_SIZE];
-
-    port.read_exact(&mut buf)?;
+    println!("GET was sent");
+    read_full_packet(&mut port, &mut buf)?;
 
     if buf[0..2] != PACKET_START {
         println!("ERROR: Invalid packet received (GET)");
@@ -90,9 +90,37 @@ pub fn get_config(port: &str) -> io::Result<keys::KeypadConfig> {
     ))
 }
 
+fn read_full_packet(
+    port: &mut Box<dyn serialport::SerialPort>,
+    buf: &mut [u8],
+) -> io::Result<usize> {
+    let mut index = 0;
+    let mut retries = 0;
+    loop {
+        let rd = port.read(&mut buf[index..]);
+
+        retries += 1;
+
+        if retries > 16 {
+            return rd;
+        }
+
+        if let Err(ref e) = rd {
+            println!("Error reading: {:?}", e);
+            continue;
+        }
+
+        index += rd.unwrap();
+
+        if index == 4 || index == 67 {
+            return Ok(index);
+        }
+    }
+}
+
 pub fn set_config(port: &str, key_struct: &keys::KeypadConfig) -> io::Result<()> {
     let mut port = serialport::new(port, 9600)
-        .timeout(Duration::from_millis(25))
+        .timeout(Duration::from_millis(15))
         .open()?;
 
     let mut buf = [0u8; CONFIG_PACKET_SIZE];
@@ -106,11 +134,12 @@ pub fn set_config(port: &str, key_struct: &keys::KeypadConfig) -> io::Result<()>
     buf[66] = calculate_crc(&buf[0..66]);
 
     port.write_all(&buf)?;
+    println!("Sent SET packet");
 
     let mut response = [0u8; 4];
 
-    port.read_exact(&mut response)?;
-
+    read_full_packet(&mut port, &mut response)?;
+    println!("Read response: {:?}", response);
     if response == SET_ACK {
         return Ok(());
     }
