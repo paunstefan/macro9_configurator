@@ -101,7 +101,7 @@ fn read_full_packet(
 
         retries += 1;
 
-        if retries > 16 {
+        if retries > 32 {
             return rd;
         }
 
@@ -120,7 +120,7 @@ fn read_full_packet(
 
 pub fn set_config(port: &str, key_struct: &keys::KeypadConfig) -> io::Result<()> {
     let mut port = serialport::new(port, 9600)
-        .timeout(Duration::from_millis(15))
+        .timeout(Duration::from_millis(20))
         .open()?;
 
     let mut buf = [0u8; CONFIG_PACKET_SIZE];

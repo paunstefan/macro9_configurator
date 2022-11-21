@@ -2,7 +2,6 @@ use fltk::{
     app,
     button::Button,
     dialog::alert,
-    enums::Color,
     group::{Pack, PackType},
     input::Input,
     menu::Choice,
@@ -172,7 +171,6 @@ fn main() {
                     state.current_button = Some(n);
                     // Read config into fields
                     if let Some(ref keypad) = state.keys {
-                        println!("Pressed: {}", n);
                         let key = match &keypad.keys[n - 1] {
                             Modified::Yes(k) => k,
                             Modified::No(k) => k,
@@ -201,7 +199,7 @@ fn main() {
                             if keycode == 0 {
                                 "".to_string()
                             } else {
-                                keycode.to_string()
+                                format!("0x{:X}", keycode)
                             }
                         };
 
@@ -270,7 +268,6 @@ fn main() {
 
                         let keys = {
                             let mut arr = [0u8; 6];
-                            let mut ok = true;
                             for i in 0..6 {
                                 let k = {
                                     if key_fields[i].value().contains("0x") {
@@ -303,8 +300,6 @@ fn main() {
                             key.keycodes = keys;
 
                             keypad.keys[but - 1] = Modified::Yes(key);
-
-                            // TODO: change color
                         }
                     }
                 }
